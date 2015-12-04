@@ -22,13 +22,18 @@
 	var saveIntoCache = function (url, folder, filename) {
 	    var uri = new Windows.Foundation.Uri(url);
 	    var client = new Windows.Web.Http.HttpClient();
+
+        // mop: open as stream so we can pipe it directly into our cachefile
 	    return client.getInputStreamAsync(uri)
         .then(function (input) {
+            // mop: create cache file in folder
             return folder.createFileAsync(filename, Windows.Storage.CreationCollisionOption.replaceExisting)
             .then(function (file) {
                 return file.openAsync(Windows.Storage.FileAccessMode.readWrite)
                 .then(function (output) {
+                    // mop: stream copy
                     return Windows.Storage.Streams.RandomAccessStream.copyAsync(input, output).then(function () {
+                        // mop: flush and close everything
                         return output.flushAsync().then(function () {
                             input.close();
                             output.close();
@@ -42,11 +47,14 @@
 
 	var retrieveUrlCacheAware = function (url) {
 	    var cacheFolder = Windows.Storage.ApplicationData.current.localCacheFolder;
-	    var filename = 'testaaaabbb';
+	    var filename = url.replace(/[^0-9-_a-zA-Z]/g, '_');
+        // mop: check if file has already been cached
 	    return cacheFolder.getItemAsync(filename)
         .then(function (file) {
+            // mop: and use that :)
             return file;
-        }, function() {
+        }, function () {
+            // mop: in error case retrieve it from the web and save it in cacheFolder as filename
             return saveIntoCache(url, cacheFolder, filename);
         })
         .then(function (file) {
@@ -77,7 +85,7 @@
                     document.getElementById("img-container").appendChild(image);
                     console.log("SRC", image.src);
                 }, function (err) {
-                    console.log("HIER MANN", err);
+                    console.error(err);
                 });
 			});
 
